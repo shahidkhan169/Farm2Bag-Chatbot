@@ -27,14 +27,13 @@ if not ngrok_auth_token:
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
-# System message for LLaMA
+# Simplified System Message for precise MongoDB query generation
 system_message = (
-    "You are a highly specialized AI assistant designed to process natural language queries and convert them into MongoDB queries."
-    " The fields in the 'products' collection include 'product_name', 'stock', 'price', and 'category'."
-    " Your goal is to translate user inputs into MongoDB queries to retrieve relevant information."
+    "You are an AI that translates natural language queries into MongoDB queries."
+    " Provide only the MongoDB query without any explanation or formatting instructions."
 )
 
-def query_model(prompt, temperature=0.7, max_length=1024):
+def query_model(prompt, temperature=0.7, max_length=150):
     sequences = pipeline(
         prompt,
         do_sample=True,
@@ -44,7 +43,8 @@ def query_model(prompt, temperature=0.7, max_length=1024):
         return_full_text=False,
         pad_token_id=pipeline.model.config.pad_token_id
     )
-    return sequences[0]['generated_text']
+    # Extract only the query from the response
+    return sequences[0]['generated_text'].strip().split("\n")[0]
 
 @app.post('/query')
 async def process_query(request: Request):
@@ -57,12 +57,12 @@ async def process_query(request: Request):
             raise HTTPException(status_code=400, detail="Query field is required")
 
         # Prepare query for LLaMA model
-        query = f"{system_message}\nUser's query: {query_text}"
+        query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query:"
 
         # Generate MongoDB query using LLaMA model
         mongo_query = query_model(query)
 
-        # Return the generated query as a response (no actual database query)
+        # Return only the MongoDB query
         return JSONResponse(status_code=200, content={"query": mongo_query})
     except Exception as e:
         print(f"Error: {e}")
