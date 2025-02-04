@@ -24,7 +24,7 @@ ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
 if not ngrok_auth_token:
     raise ValueError("NGROK_AUTH_TOKEN is not set")
 
-ngrok.set_auth_token(grok_auth_token)
+ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
 # System message for LLaMA
