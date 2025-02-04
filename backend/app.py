@@ -1,31 +1,22 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM
-import ngrok
 import uvicorn
 import torch
+
 # Initialize FastAPI app
 app = FastAPI()
 
 # Load the LLaMA model and tokenizer
-model = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
-tokenizer = AutoTokenizer.from_pretrained(model)
+model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
+tokenizer = AutoTokenizer.from_pretrained(model_path)
 pipeline = transformers.pipeline(
     "text-generation",
-    model=model,
+    model=model_path,
     torch_dtype=torch.float16,
     device_map="auto"
 )
-
-# Set up ngrok
-ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
-if not ngrok_auth_token:
-    raise ValueError("NGROK_AUTH_TOKEN is not set")
-
-ngrok.set_auth_token(ngrok_auth_token)
-public_url = ngrok.connect(8000, domain="bream-dear-physically.ngrok-free.app")  # This will give you the ngrok public URL
-print(f"FastAPI is live at: {public_url}")
 
 # System message for LLaMA
 system_message = (
@@ -47,8 +38,15 @@ def query_model(prompt, temperature=0.7, max_length=1024):
     return sequences[0]['generated_text']
 
 @app.post('/query')
-async def process_query(query_text: str):
+async def process_query(request: Request):
     try:
+        # Parse raw JSON body
+        body = await request.json()  # Extracts raw JSON data
+        query_text = body.get("query")  # Get "query" field from JSON
+
+        if not query_text:
+            raise HTTPException(status_code=400, detail="Query field is required")
+
         # Prepare query for LLaMA model
         query = f"{system_message}\nUser's query: {query_text}"
 
