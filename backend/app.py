@@ -4,6 +4,7 @@ import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import uvicorn
 import torch
+import ngrok
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -17,6 +18,14 @@ pipeline = transformers.pipeline(
     torch_dtype=torch.float16,
     device_map="auto"
 )
+
+# Set up ngrok
+grok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
+if not ngrok_auth_token:
+    raise ValueError("NGROK_AUTH_TOKEN is not set")
+
+ngrok.set_auth_token(grok_auth_token)
+listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
 # System message for LLaMA
 system_message = (
@@ -41,8 +50,8 @@ def query_model(prompt, temperature=0.7, max_length=1024):
 async def process_query(request: Request):
     try:
         # Parse raw JSON body
-        body = await request.json()  # Extracts raw JSON data
-        query_text = body.get("query")  # Get "query" field from JSON
+        body = await request.json()
+        query_text = body.get("query")
 
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
