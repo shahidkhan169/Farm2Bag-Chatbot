@@ -4,7 +4,7 @@ import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import ngrok
 import uvicorn
-
+import torch
 # Initialize FastAPI app
 app = FastAPI()
 
