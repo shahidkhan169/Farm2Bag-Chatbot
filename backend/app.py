@@ -20,7 +20,7 @@ pipeline = transformers.pipeline(
 )
 
 # Set up ngrok
-grok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
+ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
 if not ngrok_auth_token:
     raise ValueError("NGROK_AUTH_TOKEN is not set")
 
