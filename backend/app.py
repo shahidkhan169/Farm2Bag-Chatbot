@@ -31,6 +31,7 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 system_message = (
     "You are an AI that translates natural language queries into MongoDB queries."
     " Provide only the MongoDB query with proper format of mongodb query without any explanation or formatting instructions."
+    "Dont provide any unnecessary slash."
 )
 
 def query_model(prompt, temperature=0.7, max_length=150):
