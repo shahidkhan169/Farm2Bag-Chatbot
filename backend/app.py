@@ -10,16 +10,14 @@ import ngrok
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:5173",  # You can add more origins if needed
-]
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=["*"],  
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
