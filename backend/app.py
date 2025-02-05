@@ -62,6 +62,10 @@ async def test_db():
     try:
         client.admin.command('ping')
         results = list(collection.find({ "name": "Turmeric Powder" }, { "price": 1, "available": 1 }))
+        
+        # Convert ObjectId to string in results
+        results = [convert_objectid_to_str(doc) for doc in results]
+        
         return {"results": results}
     except Exception as e:
         return {"error": str(e)}
