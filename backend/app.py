@@ -66,18 +66,12 @@ def query_model(prompt, temperature=0.7, max_length=150):
     return sequences[0]['generated_text'].strip().split("\n")[0]  # Extracting only the first response
 
 # Helper function to check if the query is MongoDB-related (simple keyword check)
-def is_mongodb_query(query_text):
-    # You can expand this regex or logic to improve query detection
-    return bool(re.search(r"(spices|fruits|vegetables|rice|pulses|dairy|juices|combos)", query_text, re.IGNORECASE))
 
-@app.get("/test-db")
-async def test_db():
-    try:
-        client.admin.command('ping')
-        results = list(collection.find({ "available": True }, {"_id": 0}))
-        return {"results": results}
-    except Exception as e:
-        return {"error": str(e)}
+
+# Function to detect product requests (like "I need Turmeric Powder")
+def is_product_query(query_text):
+    # You can adjust this regex to detect more product-related phrases or keywords
+    return bool(re.search(r"(need|find|show|turmeric powder|spices|fruits|vegetables|rice|pulses|dairy|juices)", query_text, re.IGNORECASE))
 
 @app.post('/query')
 async def process_query(request: Request):
@@ -89,38 +83,48 @@ async def process_query(request: Request):
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
 
-        if is_mongodb_query(query_text):  # Check if it's a MongoDB query
-            # Prepare prompt for LLaMA model to generate MongoDB query
+        if is_mongodb_query(query_text):  # If it's a MongoDB-related query
+            # Generate MongoDB query for product search
             query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
-
-            # Generate MongoDB query
             mongo_query_text = query_model(query)
-            print("Raw LLaMA Output:", mongo_query_text)  # Debugging line
+            print("Raw LLaMA Output:", mongo_query_text)
 
-            # Ensure the generated output is valid JSON
             try:
-                mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
+                mongo_query = json.loads(mongo_query_text)
                 if not isinstance(mongo_query, dict):
                     raise ValueError("Generated query is not a valid JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
             # Execute MongoDB query
-            results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
-
-            # Return the MongoDB query
+            results = list(collection.find(mongo_query, {"_id": 0}))
             return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
 
-        else:
-            # If it's not a MongoDB query, treat it as a normal chatbot query for eCommerce
+        elif is_product_query(query_text):  # Handle specific product queries like "I need Turmeric Powder"
+            product_name = query_text.lower().split("need")[-1].strip()
+            # Assuming that the product name is well-known and matches category in the database
+            mongo_query = {"name": {"$regex": product_name, "$options": "i"}}
+
+            # Fetch the product details from MongoDB
+            results = list(collection.find(mongo_query, {"_id": 0}))
+            if results:
+                return JSONResponse(status_code=200, content={"response": f"Here are some options for {product_name}: ", "results": results})
+            else:
+                return JSONResponse(status_code=200, content={"response": f"Sorry, we couldn't find {product_name} in our store. Would you like to search for something else?"})
+
+        else:  # For casual or non-product-related questions, return friendly chatbot responses
             ecommerce_prompt = (
                 "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
-                "You help users make recommendations, and answer casual questions. "
+                "You help users find products, make recommendations, and answer casual questions. "
+                "You can answer questions like: "
+                "- Show me all fruits or vegetables."
+                "- What are the most popular products?"
+                "- What are the discounts on products?"
+                "- Can you recommend some rice products?"
+                "- Tell me a fun fact or joke!"
                 "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
-                "Talk short and sweet with like attractive"
             )
 
-            # Prepare the prompt for LLaMA model to engage in a friendly eCommerce chatbot conversation
             conversation_response = query_model(f"{ecommerce_prompt}\nUser's query: {query_text}\nYour response:")
 
             # Return the friendly response
@@ -129,6 +133,7 @@ async def process_query(request: Request):
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
