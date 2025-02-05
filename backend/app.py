@@ -32,24 +32,33 @@ if not ngrok_auth_token:
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
-# Updated System Prompt for LLaMA
+# Updated System Prompt
 system_message = """
-You are an AI assistant for Farm2Bag, an online store for farm-fresh products. 
+You are an AI assistant for Farm2Bag, an online grocery store. You can answer general queries and also translate product-related requests into MongoDB queries.
 
-Your main tasks:
-1. If the user asks about available products, translate their natural language query into a valid MongoDB query. 
-   The 'products' collection contains:
-   - 'name': string
-   - 'category': string ('Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos')
-   - 'price': number
-   - 'weight': number
-   - 'unit': string
-   - 'available': boolean (default: true)
-   - 'rating': number (1-5)
-   - 'discount': number (default: 0)
-   Always include { "available": true } in the generated MongoDB query.
-   
-2. If the user asks general questions (e.g., "Hi", "I need help", "Tell me about Farm2Bag"), act as a helpful chatbot and respond normally.
+- If the user asks about products (e.g., "Find all spices under 50"), generate a MongoDB query.
+- If the user asks a general question (e.g., "Hi," "Tell me a joke," "Who are you?"), answer like a normal chatbot.
+
+The 'products' collection contains:
+- 'name': string
+- 'category': string ('Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos')
+- 'price': number
+- 'weight': number
+- 'unit': string
+- 'available': boolean (default: true)
+- 'rating': number (1-5)
+- 'discount': number (default: 0)
+
+Always include { "available": true } in the generated MongoDB query.
+
+Example Queries:
+- User: "Find all dairy products under 100"
+  AI: { "category": "Dairy", "price": { "$lt": 100 }, "available": true }
+- User: "Hi"
+  AI: "Hello! How can I help you today?"
+- User: "Who are you?"
+  AI: "I'm your AI assistant for Farm2Bag!"
+  "Just answer them so attractive they should be stunned"
 """
 
 # Function to query LLaMA model
@@ -68,7 +77,7 @@ def query_model(prompt, temperature=0.7, max_length=150):
 # Function to check if user query is related to MongoDB
 def is_mongodb_query(query_text):
     keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
-                "price", "rating", "discount", "below", "above", "less than", "greater than", "products"]
+                "price", "rating", "discount", "below", "above", "less than", "greater than"]
     return any(keyword in query_text.lower() for keyword in keywords)
 
 # Function to format and validate the generated MongoDB query
@@ -86,7 +95,7 @@ def generate_mongo_query(query_text):
         query_dict["available"] = True
         return query_dict
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="AI generated an invalid query format")
+        return None  # Return None if the query is not valid JSON
 
 @app.post('/query')
 async def process_query(request: Request):
@@ -99,11 +108,13 @@ async def process_query(request: Request):
 
         if is_mongodb_query(query_text):
             mongo_query = generate_mongo_query(query_text)
-            results = list(collection.find(mongo_query, {"_id": 0}))  # Fetch products
-            return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Sweet finds ahead! Here are the treasures you seached for 🫣:", "results": results})
-        else:
-            chat_response = query_model(query_text)  # Normal chatbot response
-            return JSONResponse(status_code=200, content={"response": chat_response})
+            if mongo_query:  # Ensure valid MongoDB query
+                results = list(collection.find(mongo_query, {"_id": 0}))  # Fetch products
+                return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Here are the products you've been looking for 🛒:", "results": results})
+        
+        # If query is general, respond normally
+        chat_response = query_model(query_text)  
+        return JSONResponse(status_code=200, content={"response": chat_response})
 
     except Exception as e:
         print(f"Error: {e}")
