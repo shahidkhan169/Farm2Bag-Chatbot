@@ -29,9 +29,8 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 
 # Simplified System Message for precise MongoDB query generation
 system_message = (
-    "You are an AI model that converts natural language questions into MongoDB queries."
-    " Given a user's query, provide only the corresponding MongoDB query in JSON format, without any explanation or additional text."
-    " Do not provide any extra characters or slashes."
+     "You are an AI that translates natural language into valid MongoDB queries. "
+    "Ensure that the output is strictly a valid **JSON object** and avoid any extra text."
 )
 
 
