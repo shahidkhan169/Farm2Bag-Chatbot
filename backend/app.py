@@ -62,18 +62,18 @@ async def process_query(request: Request):
             raise HTTPException(status_code=400, detail="Query field is required")
 
         # Prepare prompt for LLaMA model
-        query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query:"
+        query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
 
         # Generate MongoDB query
         mongo_query_text = query_model(query)
 
-        # Convert to dictionary
+        # Ensure the generated output is **valid JSON**
         try:
-            mongo_query = eval(mongo_query_text)  # Convert string to dictionary
+            mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
             if not isinstance(mongo_query, dict):
-                raise ValueError("Invalid MongoDB query format")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Invalid MongoDB query format: {e}")
+                raise ValueError("Generated query is not a valid JSON object")
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
         # Execute MongoDB query
         results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
