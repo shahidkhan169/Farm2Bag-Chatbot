@@ -35,7 +35,6 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 # System Message to guide AI for MongoDB query generation and normal chatbot behavior
 system_message = (
     "You are an AI that translates natural language into valid MongoDB queries when the user asks about the products in the database. "
-    "If the user asks for something unrelated to the products, behave like a chatbot answer friendly like conversation."
     "The 'products' collection contains the following fields with their respective data types and constraints: "
     "'name': string (required), "
     "'category': string (required, one of 'Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos'), "
@@ -67,28 +66,17 @@ def query_model(prompt, temperature=0.7, max_length=150):
 
 # Helper function to check if the query is MongoDB-related (simple keyword check)
 def is_mongodb_query(query_text):
-    return bool(re.search(r"(find|search|query|database)", query_text, re.IGNORECASE))
+    # You can expand this regex or logic to improve query detection
+    return bool(re.search(r"(spices|fruits|vegetables|rice|pulses|dairy|juices|combos)", query_text, re.IGNORECASE))
 
-# Function to check if the query is about products (like "I need Turmeric Powder")
-def is_product_query(query_text):
-    # Look for keywords related to products (like 'need', 'buy', etc.)
-    return bool(re.search(r"(need|need some|buy|find|search)", query_text, re.IGNORECASE))
-
-# Helper function to handle rating and discount logic
-def add_rating_discount_logic(query_text, mongo_query):
-    # If a rating is mentioned, add it to the query
-    rating_match = re.search(r"rating\s*([1-5])", query_text, re.IGNORECASE)
-    if rating_match:
-        rating_value = int(rating_match.group(1))
-        mongo_query['rating'] = {"$gte": rating_value}  # Filter products with the rating greater than or equal to the value
-
-    # If a discount is mentioned, add it to the query
-    discount_match = re.search(r"discount\s*([0-9]+)", query_text, re.IGNORECASE)
-    if discount_match:
-        discount_value = int(discount_match.group(1))
-        mongo_query['discount'] = {"$gte": discount_value}  # Filter products with discount greater than or equal to the value
-
-    return mongo_query
+@app.get("/test-db")
+async def test_db():
+    try:
+        client.admin.command('ping')
+        results = list(collection.find({ "available": True }, {"_id": 0}))
+        return {"results": results}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post('/query')
 async def process_query(request: Request):
@@ -100,75 +88,37 @@ async def process_query(request: Request):
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
 
-        # List of product categories
-        categories = ['fruits', 'vegetables', 'rice', 'pulses', 'spices', 'dairy', 'juices', 'combos']
-
-        # Check if the query is about a category (e.g., "I need vegetables")
-        for category in categories:
-            if category in query_text.lower():
-                # Create the MongoDB query based on category
-                mongo_query = {"category": {"$regex": category, "$options": "i"}}
-                # Add rating and discount filters to the query
-                mongo_query = add_rating_discount_logic(query_text, mongo_query)
-                print(mongo_query)
-                # Fetch the product details from MongoDB
-                results = list(collection.find(mongo_query, {"_id": 0}))
-                if results:
-                    return JSONResponse(status_code=200, content={"response": f"Here are some options for {category}: ", "results": results})
-                else:
-                    return JSONResponse(status_code=200, content={"response": f"Sorry, we couldn't find any {category} in our store. Would you like to search for something else?"})
-
-        # If it's not a category-based query, check for MongoDB queries or product queries
-        if is_mongodb_query(query_text):  # If it's a MongoDB-related query
-            # Generate MongoDB query for product search
+        if is_mongodb_query(query_text):  # Check if it's a MongoDB query
+            # Prepare prompt for LLaMA model to generate MongoDB query
             query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
-            mongo_query_text = query_model(query)
-            print("Raw LLaMA Output:", mongo_query_text)
 
+            # Generate MongoDB query
+            mongo_query_text = query_model(query)
+            print("Raw LLaMA Output:", mongo_query_text)  # Debugging line
+
+            # Ensure the generated output is valid JSON
             try:
-                mongo_query = json.loads(mongo_query_text)
+                mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
                 if not isinstance(mongo_query, dict):
                     raise ValueError("Generated query is not a valid JSON object")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
-            # Add rating and discount filters to the query
-            mongo_query = add_rating_discount_logic(query_text, mongo_query)
-
             # Execute MongoDB query
-            results = list(collection.find(mongo_query, {"_id": 0}))
+            results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
+
+            # Return the MongoDB query
             return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
 
-        elif is_product_query(query_text):  # Handle specific product queries like "I need Turmeric Powder"
-            product_name = query_text.lower().split("need")[-1].strip()
-            # Assuming that the product name is well-known and matches category in the database
-            mongo_query = {"name": {"$regex": product_name, "$options": "i"}}
-            # Add rating and discount filters to the query
-            mongo_query = add_rating_discount_logic(query_text, mongo_query)
-            print(mongo_query)
-            # Fetch the product details from MongoDB
-            results = list(collection.find(mongo_query, {"_id": 0}))
-            if results:
-                return JSONResponse(status_code=200, content={"response": f"Here are some options for {product_name}: ", "results": results})
-            else:
-                return JSONResponse(status_code=200, content={"response": f"Sorry, we couldn't find {product_name} in our store. Would you like to search for something else?"})
-
-        else:  # For casual or non-product-related questions, return friendly chatbot responses
-            ecommerce_prompt = (
-                "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
-                "You help users find products, make recommendations, and answer casual questions. "
-                "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
-            )
-
-            conversation_response = query_model(f"{ecommerce_prompt}\nUser's query: {query_text}\nYour response:")
-
-            # Return the friendly response
-            return JSONResponse(status_code=200, content={"response": conversation_response})
+        else:
+            # If it's not a MongoDB query, treat it as a normal chatbot query
+            # Just pass the text to the model for a conversation response
+            chat_response = query_model(query_text)
+            return JSONResponse(status_code=200, content={"response": chat_response})
 
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     import uvicorn
