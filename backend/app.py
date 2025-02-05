@@ -32,10 +32,10 @@ if not ngrok_auth_token:
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
-# System Message to guide AI for MongoDB query generation
+# System Message to guide AI for MongoDB query generation and normal chatbot behavior
 system_message = (
-    "You are an AI that translates natural language into valid MongoDB queries. "
-    "Ensure the output is strictly a **valid JSON object** with no extra text or explanation. "
+    "You are an AI that translates natural language into valid MongoDB queries when the user asks about the products in the database. "
+    "If the user asks for something unrelated to the products, behave like a chatbot for Farm2Bag.com, providing general answers about the farm2bag services, products, or help. "
     "The 'products' collection contains the following fields with their respective data types and constraints: "
     "'name': string (required), "
     "'category': string (required, one of 'Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos'), "
@@ -49,7 +49,8 @@ system_message = (
     "{ 'category': 'Spices' }. "
     "If asked to find spices with a price below 50, generate: "
     "{ 'category': 'Spices', 'price': { '$lt': 50 } }. "
-    "Ensure the JSON is formatted correctly with proper MongoDB operators."
+    "Ensure the JSON is formatted correctly with proper MongoDB operators. "
+    "If the user asks anything else, respond with general information related to farm2bag.com, like products, services, or company information."
 )
 
 # Function to query the LLaMA model
