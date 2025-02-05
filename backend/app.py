@@ -69,9 +69,10 @@ def query_model(prompt, temperature=0.7, max_length=150):
 
 
 # Function to detect product requests (like "I need Turmeric Powder")
-def is_product_query(query_text):
-    # You can adjust this regex to detect more product-related phrases or keywords
-    return bool(re.search(r"(need|find|show|turmeric powder|spices|fruits|vegetables|rice|pulses|dairy|juices)", query_text, re.IGNORECASE))
+# Helper function to check if the query is MongoDB-related (simple keyword check)
+def is_mongodb_query(query_text):
+    return bool(re.search(r"(find|search|query|database)", query_text, re.IGNORECASE))
+
 
 @app.post('/query')
 async def process_query(request: Request):
