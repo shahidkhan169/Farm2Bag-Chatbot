@@ -6,7 +6,7 @@ import uvicorn
 import torch
 import pymongo
 import ngrok
-
+import json
 # Initialize FastAPI app
 app = FastAPI()
 
