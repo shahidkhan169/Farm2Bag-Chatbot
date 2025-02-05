@@ -9,6 +9,18 @@ import ngrok
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:5173",  
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"], 
+)
+
 model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
 pipeline = transformers.pipeline(
     "text-generation",
