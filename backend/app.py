@@ -112,10 +112,18 @@ async def process_query(request: Request):
             return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
 
         else:
-            # If it's not a MongoDB query, treat it as a normal chatbot query
-            # Just pass the text to the model for a conversation response
-            chat_response = query_model(query_text)
-            return JSONResponse(status_code=200, content={"response": chat_response})
+            # If it's not a MongoDB query, treat it as a normal chatbot query for eCommerce
+            ecommerce_prompt = (
+                "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
+                "You help users make recommendations, and answer casual questions. "
+                "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
+            )
+
+            # Prepare the prompt for LLaMA model to engage in a friendly eCommerce chatbot conversation
+            conversation_response = query_model(f"{ecommerce_prompt}\nUser's query: {query_text}\nYour response:")
+
+            # Return the friendly response
+            return JSONResponse(status_code=200, content={"response": conversation_response})
 
     except Exception as e:
         print(f"Error: {e}")
