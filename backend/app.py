@@ -31,7 +31,6 @@ if not ngrok_auth_token:
 
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
-
 # System Prompt for MongoDB Query Generation
 system_message = """
 You are an AI that translates natural language into valid MongoDB queries. 
@@ -67,14 +66,11 @@ def query_model(prompt, temperature=0.7, max_length=150):
 # Function to check if user query is related to MongoDB
 def is_mongodb_query(query_text):
     keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
-                "price", "rating", "discount", "below", "above", "less than", "greater than", "products"]
+                "price", "rating", "discount", "below", "above", "less than", "greater than"]
     return any(keyword in query_text.lower() for keyword in keywords)
 
 # Function to format and validate the generated MongoDB query
 def generate_mongo_query(query_text):
-    if query_text.strip().lower() == "products":
-        return {"available": True}  # Return all available products
-    
     query_prompt = f"{system_message}\nUser Query: {query_text}\nMongoDB Query (JSON):"
     raw_query = query_model(query_prompt)
     print("LLaMA Generated:", raw_query)  # Debugging Output
