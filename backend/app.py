@@ -5,6 +5,7 @@ import torch
 import pymongo
 import json
 import re
+import ngrok
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -24,6 +25,12 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["test"]
 collection = db["products"]
 
+ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
+if not ngrok_auth_token:
+    raise ValueError("NGROK_AUTH_TOKEN is not set")
+
+ngrok.set_auth_token(ngrok_auth_token)
+listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 # System Prompt for MongoDB Query Generation
 system_message = """
 You are an AI that translates natural language into valid MongoDB queries. 
