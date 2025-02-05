@@ -35,7 +35,7 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 # System Message to guide AI for MongoDB query generation and normal chatbot behavior
 system_message = (
     "You are an AI that translates natural language into valid MongoDB queries when the user asks about the products in the database. "
-    "If the user asks for something unrelated to the products, behave like a chatbot for Farm2Bag.com, providing general answers about the farm2bag services, products, or help. "
+    "If the user asks for something unrelated to the products, behave like a chatbot answer friendly like conversation."
     "The 'products' collection contains the following fields with their respective data types and constraints: "
     "'name': string (required), "
     "'category': string (required, one of 'Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos'), "
