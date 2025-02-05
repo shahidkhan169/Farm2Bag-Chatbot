@@ -74,6 +74,22 @@ def is_product_query(query_text):
     # Look for keywords related to products (like 'need', 'buy', etc.)
     return bool(re.search(r"(need|buy|find|search)", query_text, re.IGNORECASE))
 
+# Helper function to handle rating and discount logic
+def add_rating_discount_logic(query_text, mongo_query):
+    # If a rating is mentioned, add it to the query
+    rating_match = re.search(r"rating\s*([1-5])", query_text, re.IGNORECASE)
+    if rating_match:
+        rating_value = int(rating_match.group(1))
+        mongo_query['rating'] = {"$gte": rating_value}  # Filter products with the rating greater than or equal to the value
+
+    # If a discount is mentioned, add it to the query
+    discount_match = re.search(r"discount\s*([0-9]+)", query_text, re.IGNORECASE)
+    if discount_match:
+        discount_value = int(discount_match.group(1))
+        mongo_query['discount'] = {"$gte": discount_value}  # Filter products with discount greater than or equal to the value
+
+    return mongo_query
+
 @app.post('/query')
 async def process_query(request: Request):
     try:
@@ -92,6 +108,8 @@ async def process_query(request: Request):
             if category in query_text.lower():
                 # Create the MongoDB query based on category
                 mongo_query = {"category": {"$regex": category, "$options": "i"}}
+                # Add rating and discount filters to the query
+                mongo_query = add_rating_discount_logic(query_text, mongo_query)
                 print(mongo_query)
                 # Fetch the product details from MongoDB
                 results = list(collection.find(mongo_query, {"_id": 0}))
@@ -105,7 +123,6 @@ async def process_query(request: Request):
             # Generate MongoDB query for product search
             query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
             mongo_query_text = query_model(query)
-            print(mongo_query)
             print("Raw LLaMA Output:", mongo_query_text)
 
             try:
@@ -115,6 +132,9 @@ async def process_query(request: Request):
             except json.JSONDecodeError:
                 raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
+            # Add rating and discount filters to the query
+            mongo_query = add_rating_discount_logic(query_text, mongo_query)
+
             # Execute MongoDB query
             results = list(collection.find(mongo_query, {"_id": 0}))
             return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
@@ -123,6 +143,8 @@ async def process_query(request: Request):
             product_name = query_text.lower().split("need")[-1].strip()
             # Assuming that the product name is well-known and matches category in the database
             mongo_query = {"name": {"$regex": product_name, "$options": "i"}}
+            # Add rating and discount filters to the query
+            mongo_query = add_rating_discount_logic(query_text, mongo_query)
             print(mongo_query)
             # Fetch the product details from MongoDB
             results = list(collection.find(mongo_query, {"_id": 0}))
