@@ -35,8 +35,8 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 
 # System Message to guide AI for MongoDB query generation
 system_message = (
-    "You are an AI that translates natural language queries into MongoDB queries. "
-    "Provide only the MongoDB query in JSON format without any explanation or additional text."
+    "You are an AI that translates natural language into valid MongoDB queries. "
+    "Ensure that the output is strictly a valid **JSON object** and avoid any extra text."
 )
 
 def query_model(prompt, temperature=0.7, max_length=150):
@@ -67,7 +67,7 @@ async def process_query(request: Request):
         # Generate MongoDB query
         mongo_query_text = query_model(query)
 
-        # Ensure the generated output is **valid JSON**
+        # Ensure the generated output is valid JSON
         try:
             mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
             if not isinstance(mongo_query, dict):
