@@ -7,10 +7,8 @@ import json
 import re
 import ngrok
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Load the LLaMA model and tokenizer
 model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
 pipeline = transformers.pipeline(
     "text-generation",
@@ -19,7 +17,6 @@ pipeline = transformers.pipeline(
     device_map="auto"
 )
 
-# Connect to MongoDB
 MONGO_URI = "mongodb+srv://shahid1692004:dihahs169@farm2bag-db.sslpa.mongodb.net/?retryWrites=true&w=majority&appName=Farm2Bag-DB"
 client = pymongo.MongoClient(MONGO_URI)
 db = client["test"]
@@ -32,7 +29,6 @@ if not ngrok_auth_token:
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
-# Updated System Prompt
 system_message = """
 You are an AI assistant for Farm2Bag, an online grocery store. You can answer general queries and also translate product-related requests into MongoDB queries.
 
@@ -61,7 +57,6 @@ Example Queries:
   "Just answer them so attractive they should be stunned"
 """
 
-# Function to query LLaMA model
 def query_model(prompt, temperature=0.7, max_length=150):
     sequences = pipeline(
         prompt,
@@ -72,51 +67,39 @@ def query_model(prompt, temperature=0.7, max_length=150):
         return_full_text=False,
         pad_token_id=pipeline.model.config.pad_token_id
     )
-    return sequences[0]['generated_text'].strip().split("\n")[0]  # Extract the first response
+    return sequences[0]['generated_text'].strip().split("\n")[0]
 
-# Function to check if user query is related to MongoDB
 def is_mongodb_query(query_text):
     keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
                 "price", "rating", "discount", "below", "above", "less than", "greater than"]
     return any(keyword in query_text.lower() for keyword in keywords)
 
-# Function to format and validate the generated MongoDB query
 def generate_mongo_query(query_text):
     query_prompt = f"{system_message}\nUser Query: {query_text}\nMongoDB Query (JSON):"
     raw_query = query_model(query_prompt)
-    print("LLaMA Generated:", raw_query)  # Debugging Output
-
     try:
         query_dict = json.loads(raw_query)
         if not isinstance(query_dict, dict):
             raise ValueError("Invalid MongoDB query format")
-
-        # Ensure 'available' field is always true
         query_dict["available"] = True
         return query_dict
     except json.JSONDecodeError:
-        return None  # Return None if the query is not valid JSON
+        return None
 
 @app.post('/query')
 async def process_query(request: Request):
     try:
         body = await request.json()
         query_text = body.get("query")
-
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
-
         if is_mongodb_query(query_text):
             mongo_query = generate_mongo_query(query_text)
-            if mongo_query:  # Ensure valid MongoDB query
-                results = list(collection.find(mongo_query, {"_id": 0}))  # Fetch products
+            if mongo_query:
+                results = list(collection.find(mongo_query, {"_id": 0}))
                 return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Here are the products you've been looking for 🛒:", "results": results})
-        
-        # If query is general, respond normally
         return JSONResponse(status_code=200, content={"response": query_model(query_text)})
-
     except Exception as e:
-        print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
