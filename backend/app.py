@@ -50,7 +50,6 @@ system_message = (
     "If asked to find spices with a price below 50, generate: "
     "{ 'category': 'Spices', 'price': { '$lt': 50 } }. "
     "Ensure the JSON is formatted correctly with proper MongoDB operators. "
-    "If the user asks anything else, respond with general information related to farm2bag.com, like products, services, or company information."
 )
 
 # Function to query the LLaMA model
