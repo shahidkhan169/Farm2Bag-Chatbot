@@ -31,23 +31,25 @@ if not ngrok_auth_token:
 
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
-# System Prompt for MongoDB Query Generation
-system_message = """
-You are an AI that translates natural language into valid MongoDB queries. 
-The 'products' collection contains:
-- 'name': string
-- 'category': string ('Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos')
-- 'price': number
-- 'weight': number
-- 'unit': string
-- 'available': boolean (default: true)
-- 'rating': number (1-5)
-- 'discount': number (default: 0)
 
-Always include { "available": true } in the generated MongoDB query.
-Example:
-- Query: "Find all spices under 50"
-- Output: { "category": "Spices", "price": { "$lt": 50 }, "available": true }
+# Updated System Prompt for LLaMA
+system_message = """
+You are an AI assistant for Farm2Bag, an online store for farm-fresh products. 
+
+Your main tasks:
+1. If the user asks about available products, translate their natural language query into a valid MongoDB query. 
+   The 'products' collection contains:
+   - 'name': string
+   - 'category': string ('Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos')
+   - 'price': number
+   - 'weight': number
+   - 'unit': string
+   - 'available': boolean (default: true)
+   - 'rating': number (1-5)
+   - 'discount': number (default: 0)
+   Always include { "available": true } in the generated MongoDB query.
+   
+2. If the user asks general questions (e.g., "Hi", "I need help", "Tell me about Farm2Bag"), act as a helpful chatbot and respond normally.
 """
 
 # Function to query LLaMA model
@@ -66,7 +68,7 @@ def query_model(prompt, temperature=0.7, max_length=150):
 # Function to check if user query is related to MongoDB
 def is_mongodb_query(query_text):
     keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
-                "price", "rating", "discount", "below", "above", "less than", "greater than"]
+                "price", "rating", "discount", "below", "above", "less than", "greater than", "products"]
     return any(keyword in query_text.lower() for keyword in keywords)
 
 # Function to format and validate the generated MongoDB query
@@ -98,7 +100,7 @@ async def process_query(request: Request):
         if is_mongodb_query(query_text):
             mongo_query = generate_mongo_query(query_text)
             results = list(collection.find(mongo_query, {"_id": 0}))  # Fetch products
-            return JSONResponse(status_code=200, content={"generated_query": mongo_query, "results": results})
+            return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Sweet finds ahead! Here are the treasures you seached for 🫣:", "results": results})
         else:
             chat_response = query_model(query_text)  # Normal chatbot response
             return JSONResponse(status_code=200, content={"response": chat_response})
