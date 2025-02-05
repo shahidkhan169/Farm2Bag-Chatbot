@@ -73,10 +73,10 @@ def is_mongodb_query(query_text):
 def parse_query_manually(query_text):
     query = {}
 
-    # Extract category (e.g., "spices")
-    category_match = re.search(r"(spices|fruits|vegetables|rice|pulses|dairy|juices|combos)", query_text, re.IGNORECASE)
-    if category_match:
-        query["category"] = category_match.group(0).capitalize()  # Ensure proper capitalization
+    # Extract categories (e.g., "spices and vegetables")
+    categories = re.findall(r"(spices|fruits|vegetables|rice|pulses|dairy|juices|combos)", query_text, re.IGNORECASE)
+    if categories:
+        query["category"] = {"$in": [cat.capitalize() for cat in categories]}  # Match any of the categories
 
     # Extract discount conditions (e.g., "discount above 30")
     discount_match = re.search(r"discount (above|below) (\d+)", query_text, re.IGNORECASE)
