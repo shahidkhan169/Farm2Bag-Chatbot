@@ -5,6 +5,7 @@ import torch
 import pymongo
 import ngrok
 import json
+import re
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -51,8 +52,7 @@ system_message = (
     "Ensure the JSON is formatted correctly with proper MongoDB operators."
 )
 
-
-
+# Function to query the LLaMA model
 def query_model(prompt, temperature=0.7, max_length=150):
     sequences = pipeline(
         prompt,
@@ -65,6 +65,11 @@ def query_model(prompt, temperature=0.7, max_length=150):
     )
     return sequences[0]['generated_text'].strip().split("\n")[0]  # Extracting only the first response
 
+# Helper function to check if the query is MongoDB-related (simple keyword check)
+def is_mongodb_query(query_text):
+    # You can expand this regex or logic to improve query detection
+    return bool(re.search(r"(spices|fruits|vegetables|rice|pulses|dairy|juices|combos)", query_text, re.IGNORECASE))
+
 @app.get("/test-db")
 async def test_db():
     try:
@@ -73,7 +78,6 @@ async def test_db():
         return {"results": results}
     except Exception as e:
         return {"error": str(e)}
-
 
 @app.post('/query')
 async def process_query(request: Request):
@@ -85,32 +89,38 @@ async def process_query(request: Request):
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
 
-        # Prepare prompt for LLaMA model
-        query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
+        if is_mongodb_query(query_text):  # Check if it's a MongoDB query
+            # Prepare prompt for LLaMA model to generate MongoDB query
+            query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
 
-        # Generate MongoDB query
-       # Generate MongoDB query
-        mongo_query_text = query_model(query)
-        print("Raw LLaMA Output:", mongo_query_text)  # Debugging line
+            # Generate MongoDB query
+            mongo_query_text = query_model(query)
+            print("Raw LLaMA Output:", mongo_query_text)  # Debugging line
 
-# Ensure the generated output is valid JSON
-        try:
-            mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
-            if not isinstance(mongo_query, dict):
-                raise ValueError("Generated query is not a valid JSON object")
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
+            # Ensure the generated output is valid JSON
+            try:
+                mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
+                if not isinstance(mongo_query, dict):
+                    raise ValueError("Generated query is not a valid JSON object")
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
+            # Execute MongoDB query
+            results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
 
-        # Execute MongoDB query
-        results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
+            # Return the MongoDB query
+            return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
 
-        # Return the MongoDB query
-        return JSONResponse(status_code=200, content={"generated_query": mongo_query_text, "results": results})
+        else:
+            # If it's not a MongoDB query, treat it as a normal chatbot query
+            # Just pass the text to the model for a conversation response
+            chat_response = query_model(query_text)
+            return JSONResponse(status_code=200, content={"response": chat_response})
 
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
