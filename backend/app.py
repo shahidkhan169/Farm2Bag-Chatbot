@@ -66,7 +66,7 @@ async def process_query(request: Request):
 
         # Generate MongoDB query
         mongo_query_text = query_model(query)
-
+        print(mongo_query_text)
         # Ensure the generated output is valid JSON
         try:
             mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
