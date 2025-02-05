@@ -58,7 +58,6 @@ Example Queries:
   AI: "Hello! How can I help you today?"
 - User: "Who are you?"
   AI: "I'm your AI assistant for Farm2Bag!"
-  "Just answer them so attractive they should be stunned"
 """
 
 # Function to query LLaMA model
