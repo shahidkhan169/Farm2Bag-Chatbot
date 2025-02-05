@@ -59,8 +59,13 @@ def query_model(prompt, temperature=0.7, max_length=150):
 
 @app.get("/test-db")
 async def test_db():
-    results = list(collection.find({ "name": "Turmeric Powder" }, { "price": 1, "available": 1 }))
-    return {"results": results}
+    try:
+        client.admin.command('ping')
+        results = list(collection.find({ "name": "Turmeric Powder" }, { "price": 1, "available": 1 }))
+        return {"results": results}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 @app.post('/query')
 async def process_query(request: Request):
