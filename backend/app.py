@@ -61,11 +61,7 @@ def query_model(prompt, temperature=0.7, max_length=150):
 async def test_db():
     try:
         client.admin.command('ping')
-        results = list(collection.find({ "name": "Turmeric Powder" }, { "price": 1, "available": 1 }))
-        
-        # Convert ObjectId to string in results
-        results = [convert_objectid_to_str(doc) for doc in results]
-        
+        results = list(collection.find({ "name": "Turmeric Powder" }, { "price": 1, "available": 1,"_id": 0 }))
         return {"results": results}
     except Exception as e:
         return {"error": str(e)}
