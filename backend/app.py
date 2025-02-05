@@ -4,6 +4,7 @@ import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import uvicorn
 import torch
+import pymongo
 import ngrok
 
 # Initialize FastAPI app
@@ -19,18 +20,21 @@ pipeline = transformers.pipeline(
     device_map="auto"
 )
 
+# Connect to MongoDB
+MONGO_URI = "mongodb+srv://your_username:your_password@your_cluster.mongodb.net/?retryWrites=true&w=majority"
+client = pymongo.MongoClient(MONGO_URI)
+db = client["your_database"]
+collection = db["products"]
+
 # Set up ngrok
 ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
-if not ngrok_auth_token:
-    raise ValueError("NGROK_AUTH_TOKEN is not set")
-
 ngrok.set_auth_token(ngrok_auth_token)
-listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
+listener = ngrok.forward("127.0.0.1:8000")
 
-# Simplified System Message for precise MongoDB query generation
+# System Message to guide AI for MongoDB query generation
 system_message = (
-    "You are an AI that translates natural language queries into MongoDB queries."
-    " Provide only the MongoDB query without any explanation or formatting instructions."
+    "You are an AI that translates natural language queries into MongoDB queries. "
+    "Provide only the MongoDB query in JSON format without any explanation or additional text."
 )
 
 def query_model(prompt, temperature=0.7, max_length=150):
@@ -43,27 +47,36 @@ def query_model(prompt, temperature=0.7, max_length=150):
         return_full_text=False,
         pad_token_id=pipeline.model.config.pad_token_id
     )
-    # Extract only the query from the response
-    return sequences[0]['generated_text'].strip().split("\n")[0]
+    return sequences[0]['generated_text'].strip().split("\n")[0]  # Extracting only the first response
 
 @app.post('/query')
 async def process_query(request: Request):
     try:
-        # Parse raw JSON body
+        # Parse request body
         body = await request.json()
         query_text = body.get("query")
 
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
 
-        # Prepare query for LLaMA model
+        # Prepare prompt for LLaMA model
         query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query:"
 
-        # Generate MongoDB query using LLaMA model
-        mongo_query = query_model(query)
+        # Generate MongoDB query
+        mongo_query_text = query_model(query)
 
-        # Return only the MongoDB query
-        return JSONResponse(status_code=200, content={"query": mongo_query})
+        # Convert to dictionary
+        try:
+            mongo_query = eval(mongo_query_text)  # Convert string to dictionary
+            if not isinstance(mongo_query, dict):
+                raise ValueError("Invalid MongoDB query format")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Invalid MongoDB query format: {e}")
+
+        # Execute MongoDB query
+        results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
+
+        return JSONResponse(status_code=200, content={"results": results})
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
