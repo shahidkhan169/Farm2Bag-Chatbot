@@ -117,12 +117,6 @@ async def process_query(request: Request):
             ecommerce_prompt = (
                 "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
                 "You help users find products, make recommendations, and answer casual questions. "
-                "You can answer questions like: "
-                "- Show me all fruits or vegetables."
-                "- What are the most popular products?"
-                "- What are the discounts on products?"
-                "- Can you recommend some rice products?"
-                "- Tell me a fun fact or joke!"
                 "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
             )
 
