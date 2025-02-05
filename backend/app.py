@@ -84,6 +84,23 @@ async def process_query(request: Request):
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
 
+        # List of product categories
+        categories = ['fruits', 'vegetables', 'rice', 'pulses', 'spices', 'dairy', 'juices', 'combos']
+
+        # Check if the query is about a category (e.g., "I need vegetables")
+        for category in categories:
+            if category in query_text.lower():
+                # Create the MongoDB query based on category
+                mongo_query = {"category": {"$regex": category, "$options": "i"}}
+
+                # Fetch the product details from MongoDB
+                results = list(collection.find(mongo_query, {"_id": 0}))
+                if results:
+                    return JSONResponse(status_code=200, content={"response": f"Here are some options for {category}: ", "results": results})
+                else:
+                    return JSONResponse(status_code=200, content={"response": f"Sorry, we couldn't find any {category} in our store. Would you like to search for something else?"})
+
+        # If it's not a category-based query, check for MongoDB queries or product queries
         if is_mongodb_query(query_text):  # If it's a MongoDB-related query
             # Generate MongoDB query for product search
             query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
@@ -117,6 +134,12 @@ async def process_query(request: Request):
             ecommerce_prompt = (
                 "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
                 "You help users find products, make recommendations, and answer casual questions. "
+                "You can answer questions like: "
+                "- Show me all fruits or vegetables."
+                "- What are the most popular products?"
+                "- What are the discounts on products?"
+                "- Can you recommend some rice products?"
+                "- Tell me a fun fact or joke!"
                 "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
             )
 
