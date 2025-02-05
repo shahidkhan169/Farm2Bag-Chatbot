@@ -117,6 +117,7 @@ async def process_query(request: Request):
                 "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
                 "You help users make recommendations, and answer casual questions. "
                 "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
+                "Talk short and sweet with like attractive"
             )
 
             # Prepare the prompt for LLaMA model to engage in a friendly eCommerce chatbot conversation
