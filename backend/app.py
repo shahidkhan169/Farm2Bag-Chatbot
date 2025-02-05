@@ -21,7 +21,7 @@ pipeline = transformers.pipeline(
 # Connect to MongoDB
 MONGO_URI = "mongodb+srv://shahid1692004:dihahs169@farm2bag-db.sslpa.mongodb.net/?retryWrites=true&w=majority&appName=Farm2Bag-DB"
 client = pymongo.MongoClient(MONGO_URI)
-db = client["Farm2Bag-DB"]
+db = client["test"]
 collection = db["products"]
 
 # Set up ngrok
