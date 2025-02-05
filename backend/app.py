@@ -66,19 +66,8 @@ async def process_query(request: Request):
 
         # Generate MongoDB query
         mongo_query_text = query_model(query)
-        print(mongo_query_text)
-        # Ensure the generated output is valid JSON
-        try:
-            mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
-            if not isinstance(mongo_query, dict):
-                raise ValueError("Generated query is not a valid JSON object")
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
 
-        # Execute MongoDB query
-        results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
-
-        return JSONResponse(status_code=200, content={"results": results})
+        return JSONResponse(status_code=200, content={"query":mongo_query_text})
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
