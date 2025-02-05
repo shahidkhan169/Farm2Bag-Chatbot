@@ -72,7 +72,7 @@ def is_mongodb_query(query_text):
 # Function to check if the query is about products (like "I need Turmeric Powder")
 def is_product_query(query_text):
     # Look for keywords related to products (like 'need', 'buy', etc.)
-    return bool(re.search(r"(need|buy|find|search)", query_text, re.IGNORECASE))
+    return bool(re.search(r"(need|need some|buy|find|search)", query_text, re.IGNORECASE))
 
 # Helper function to handle rating and discount logic
 def add_rating_discount_logic(query_text, mongo_query):
