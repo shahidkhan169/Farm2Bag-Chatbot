@@ -22,7 +22,7 @@ pipeline = transformers.pipeline(
 MONGO_URI = "mongodb+srv://shahid1692004:dihahs169@farm2bag-db.sslpa.mongodb.net/?retryWrites=true&w=majority&appName=Farm2Bag-DB"
 client = pymongo.MongoClient(MONGO_URI)
 db = client["Farm2Bag-DB"]
-collection = db["product"]
+collection = db["products"]
 
 # Set up ngrok
 ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
@@ -56,6 +56,11 @@ def query_model(prompt, temperature=0.7, max_length=150):
         pad_token_id=pipeline.model.config.pad_token_id
     )
     return sequences[0]['generated_text'].strip().split("\n")[0]  # Extracting only the first response
+
+@app.get("/test-db")
+async def test_db():
+    results = list(collection.find({"available": True, "price": {"$lt": 50}}, {"_id": 0}))
+    return {"results": results}
 
 @app.post('/query')
 async def process_query(request: Request):
