@@ -25,6 +25,7 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["test"]
 collection = db["products"]
 
+# Ngrok setup
 ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
 if not ngrok_auth_token:
     raise ValueError("NGROK_AUTH_TOKEN is not set")
@@ -32,12 +33,11 @@ if not ngrok_auth_token:
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
-# Updated System Prompt
+# System Prompt
 system_message = """
-You are an AI assistant for Farm2Bag, an online grocery store. You can answer general queries and also translate product-related requests into MongoDB queries.
-
-- If the user asks about products (e.g., "Find all spices under 50"), generate a MongoDB query.
-- If the user asks a general question (e.g., "Hi," "Tell me a joke," "Who are you?"), answer like a normal chatbot.
+You are an AI assistant for Farm2Bag, an online grocery store. You can:
+1. Answer general queries (e.g., "What is Farm2Bag?", "Tell me a joke").
+2. Translate product-related requests into MongoDB queries.
 
 The 'products' collection contains:
 - 'name': string
@@ -49,15 +49,13 @@ The 'products' collection contains:
 - 'rating': number (1-5)
 - 'discount': number (default: 0)
 
-Always include { "available": true } in the generated MongoDB query.
+Always include { "available": true } in MongoDB queries.
 
 Example Queries:
 - User: "Find all dairy products under 100"
   AI: { "category": "Dairy", "price": { "$lt": 100 }, "available": true }
-- User: "Hi"
-  AI: "Hello! How can I help you today?"
-- User: "Who are you?"
-  AI: "I'm your AI assistant for Farm2Bag!"
+- User: "What is Farm2Bag?"
+  AI: "Farm2Bag is an online grocery store that provides fresh products delivered to your doorstep!"
 """
 
 # Function to query LLaMA model
@@ -71,19 +69,18 @@ def query_model(prompt, temperature=0.7, max_length=150):
         return_full_text=False,
         pad_token_id=pipeline.model.config.pad_token_id
     )
-    return sequences[0]['generated_text'].strip().split("\n")[0]  # Extract the first response
+    return sequences[0]['generated_text'].strip()
 
 # Function to check if user query is related to MongoDB
 def is_mongodb_query(query_text):
     keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
-                "price", "rating", "discount", "below", "above", "less than", "greater than"]
+                "price", "rating", "discount", "below", "above", "less than", "greater than", "find", "show"]
     return any(keyword in query_text.lower() for keyword in keywords)
 
 # Function to format and validate the generated MongoDB query
 def generate_mongo_query(query_text):
     query_prompt = f"{system_message}\nUser Query: {query_text}\nMongoDB Query (JSON):"
     raw_query = query_model(query_prompt)
-    print("LLaMA Generated:", raw_query)  # Debugging Output
 
     try:
         query_dict = json.loads(raw_query)
@@ -110,9 +107,10 @@ async def process_query(request: Request):
             if mongo_query:  # Ensure valid MongoDB query
                 results = list(collection.find(mongo_query, {"_id": 0}))  # Fetch products
                 return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Here are the products you've been looking for 🛒:", "results": results})
-        
-        # If query is general, respond normally
-        chat_response = query_model(query_text)  
+
+        # Handle general chatbot queries
+        chatbot_prompt = f"{system_message}\nUser Query: {query_text}\nAI Response:"
+        chat_response = query_model(chatbot_prompt)
         return JSONResponse(status_code=200, content={"response": chat_response})
 
     except Exception as e:
