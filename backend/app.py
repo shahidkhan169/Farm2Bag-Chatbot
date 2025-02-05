@@ -92,7 +92,7 @@ async def process_query(request: Request):
             if category in query_text.lower():
                 # Create the MongoDB query based on category
                 mongo_query = {"category": {"$regex": category, "$options": "i"}}
-
+                print(mongo_query)
                 # Fetch the product details from MongoDB
                 results = list(collection.find(mongo_query, {"_id": 0}))
                 if results:
@@ -105,6 +105,7 @@ async def process_query(request: Request):
             # Generate MongoDB query for product search
             query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
             mongo_query_text = query_model(query)
+            print(mongo_query)
             print("Raw LLaMA Output:", mongo_query_text)
 
             try:
@@ -122,7 +123,7 @@ async def process_query(request: Request):
             product_name = query_text.lower().split("need")[-1].strip()
             # Assuming that the product name is well-known and matches category in the database
             mongo_query = {"name": {"$regex": product_name, "$options": "i"}}
-
+            print(mongo_query)
             # Fetch the product details from MongoDB
             results = list(collection.find(mongo_query, {"_id": 0}))
             if results:
@@ -134,12 +135,6 @@ async def process_query(request: Request):
             ecommerce_prompt = (
                 "You are a friendly assistant for an eCommerce site called 'Farm2Bag'. "
                 "You help users find products, make recommendations, and answer casual questions. "
-                "You can answer questions like: "
-                "- Show me all fruits or vegetables."
-                "- What are the most popular products?"
-                "- What are the discounts on products?"
-                "- Can you recommend some rice products?"
-                "- Tell me a fun fact or joke!"
                 "Always respond in a friendly and engaging manner, as if you're chatting with a friend."
             )
 
