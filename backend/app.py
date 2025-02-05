@@ -66,13 +66,13 @@ def query_model(prompt, temperature=0.7, max_length=150):
     return sequences[0]['generated_text'].strip().split("\n")[0]  # Extracting only the first response
 
 # Helper function to check if the query is MongoDB-related (simple keyword check)
-
-
-# Function to detect product requests (like "I need Turmeric Powder")
-# Helper function to check if the query is MongoDB-related (simple keyword check)
 def is_mongodb_query(query_text):
     return bool(re.search(r"(find|search|query|database)", query_text, re.IGNORECASE))
 
+# Function to check if the query is about products (like "I need Turmeric Powder")
+def is_product_query(query_text):
+    # Look for keywords related to products (like 'need', 'buy', etc.)
+    return bool(re.search(r"(need|buy|find|search)", query_text, re.IGNORECASE))
 
 @app.post('/query')
 async def process_query(request: Request):
