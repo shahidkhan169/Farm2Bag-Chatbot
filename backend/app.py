@@ -34,11 +34,15 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="brea
 # System Message to guide AI for MongoDB query generation
 system_message = (
     "You are an AI that translates natural language into valid MongoDB queries. "
-    "The `products` collection has the following fields: "
-    "name, category, price, weight, unit, available, rating, and discount. "
-    "Ensure that the output is strictly a valid **JSON object** representing a MongoDB query "
-    "based on these fields, and avoid any extra text."
+    "Ensure the output is strictly a **valid JSON object** with no extra text or explanation. "
+    "The 'products' collection contains the following fields: "
+    "{ 'name': string, 'category': string, 'price': number, 'weight': string, "
+    "'unit': string, 'available': boolean, 'rating': number, 'discount': number }. "
+    "Example: If asked to find available products below $50, generate: "
+    "{ 'available':true, 'price': { '$lt': 50 } }. "
+    "Ensure the JSON is formatted correctly with proper MongoDB operators."
 )
+
 
 
 def query_model(prompt, temperature=0.7, max_length=150):
@@ -67,16 +71,18 @@ async def process_query(request: Request):
         query = f"{system_message}\nUser's query: {query_text}\nMongoDB Query in JSON format:"
 
         # Generate MongoDB query
+       # Generate MongoDB query
         mongo_query_text = query_model(query)
-        print(mongo_query_text)
+        print("Raw LLaMA Output:", mongo_query_text)  # Debugging line
 
-        # Ensure the generated output is valid JSON
+# Ensure the generated output is valid JSON
         try:
             mongo_query = json.loads(mongo_query_text)  # Convert to dictionary safely
             if not isinstance(mongo_query, dict):
                 raise ValueError("Generated query is not a valid JSON object")
         except json.JSONDecodeError:
             raise HTTPException(status_code=500, detail="Invalid MongoDB query format (not JSON)")
+
 
         # Execute MongoDB query
         results = list(collection.find(mongo_query, {"_id": 0}))  # Exclude _id field
