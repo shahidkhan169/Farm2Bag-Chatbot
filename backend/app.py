@@ -12,11 +12,12 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
-    allow_credentials=True, 
-    allow_methods=["*"], 
-    allow_headers=["*"], 
+    allow_origins=["http://localhost:5173"],  # Replace with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
 
 model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
 pipeline = transformers.pipeline(
