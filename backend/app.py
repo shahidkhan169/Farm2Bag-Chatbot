@@ -59,7 +59,7 @@ def query_model(prompt, temperature=0.7, max_length=150):
 
 @app.get("/test-db")
 async def test_db():
-    results = list(collection.find({"available": True, "price": {"$lt": 50}}, {"_id": 0}))
+    results = list(collection.find({"available": True, "price": {"$lt": 300}}, {"_id": 0}))
     return {"results": results}
 
 @app.post('/query')
