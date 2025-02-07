@@ -10,15 +10,16 @@ import ngrok
 
 app = FastAPI()
 
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace with your frontend URL
+    allow_origins=["*"],  # Allow all origins (replace with your frontend URL in production)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
+# Load the LLaMA model
 model_path = "/kaggle/input/llama-3.2/transformers/3b-instruct/1"
 pipeline = transformers.pipeline(
     "text-generation",
@@ -27,46 +28,39 @@ pipeline = transformers.pipeline(
     device_map="auto"
 )
 
+# MongoDB Configuration
 MONGO_URI = "mongodb+srv://shahid1692004:dihahs169@farm2bag-db.sslpa.mongodb.net/?retryWrites=true&w=majority&appName=Farm2Bag-DB"
 client = pymongo.MongoClient(MONGO_URI)
 db = client["test"]
 collection = db["products"]
 
+# Ngrok Configuration
 ngrok_auth_token = "2lBvQQTBJSwgRw2dTqZ1F9vqCAG_4TWPvfo4pzRK4AHkF5tpS"
 if not ngrok_auth_token:
     raise ValueError("NGROK_AUTH_TOKEN is not set")
-
 ngrok.set_auth_token(ngrok_auth_token)
 listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="bream-dear-physically.ngrok-free.app")
 
+# System Message
 system_message = """
-You are an AI assistant for Farm2Bag, an online grocery store. You can answer general queries and also translate product-related requests into MongoDB queries.
+You are an AI assistant for Farm2Bag, an online grocery store. Your tasks are:
+1. Engage in natural conversations for general queries (e.g., "Hi", "How are you?", "Tell me a joke").
+2. For product-related queries, generate a MongoDB query to fetch relevant products.
 
-- If the user asks about products (e.g., "Find all spices under 50"), generate a MongoDB query.
-- If the user asks a general question (e.g., "Hi," "Tell me a joke," "Who are you?"), answer like a normal chatbot.
+Product-related queries include:
+- Searching by category: ['Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos']
+- Searching by product name, price, discount, or rating.
 
-The 'products' collection contains:
-- 'name': string
-- 'category': string ('Fruits', 'Vegetables', 'Rice', 'Pulses', 'Spices', 'Dairy', 'Juices', 'Combos')
-- 'price': number
-- 'weight': number
-- 'unit': string
-- 'available': boolean (default: true)
-- 'rating': number (1-5)
-- 'discount': number (default: 0)
+Always include { "available": true } in MongoDB queries.
 
-Always include { "available": true } in the generated MongoDB query.
-
-Example Queries:
-- User: "Find all dairy products under 100"
-  AI: { "category": "Dairy", "price": { "$lt": 100 }, "available": true }
+Example:
 - User: "Hi"
-  AI: "Hello! How can I help you today?"
-- User: "Who are you?"
-  AI: "I'm your AI assistant for Farm2Bag!"
-  "Just answer them so attractive they should be stunned"
+  AI: "Hello! How can I assist you today?"
+- User: "Find fruits under 50"
+  AI: { "category": "Fruits", "price": { "$lt": 50 }, "available": true }
 """
 
+# Function to query the LLaMA model
 def query_model(prompt, temperature=0.7, max_length=150):
     sequences = pipeline(
         prompt,
@@ -79,11 +73,13 @@ def query_model(prompt, temperature=0.7, max_length=150):
     )
     return sequences[0]['generated_text'].strip().split("\n")[0]
 
-def is_mongodb_query(query_text):
-    keywords = ["spices", "fruits", "vegetables", "rice", "pulses", "dairy", "juices", "combos",
-                "price", "rating", "discount", "below", "above", "less than", "greater than"]
-    return any(keyword in query_text.lower() for keyword in keywords)
+# Function to check if a query is product-related
+def is_product_query(query_text):
+    product_keywords = ["fruits", "vegetables", "rice", "pulses", "spices", "dairy", "juices", "combos",
+                        "price", "discount", "rating", "under", "above", "less than", "greater than"]
+    return any(keyword in query_text.lower() for keyword in product_keywords)
 
+# Function to generate a MongoDB query
 def generate_mongo_query(query_text):
     query_prompt = f"{system_message}\nUser Query: {query_text}\nMongoDB Query (JSON):"
     raw_query = query_model(query_prompt)
@@ -91,11 +87,12 @@ def generate_mongo_query(query_text):
         query_dict = json.loads(raw_query)
         if not isinstance(query_dict, dict):
             raise ValueError("Invalid MongoDB query format")
-        query_dict["available"] = True
+        query_dict["available"] = True  # Ensure only available products are fetched
         return query_dict
     except json.JSONDecodeError:
         return None
 
+# API Endpoint to handle user queries
 @app.post('/query')
 async def process_query(request: Request):
     try:
@@ -103,15 +100,30 @@ async def process_query(request: Request):
         query_text = body.get("query")
         if not query_text:
             raise HTTPException(status_code=400, detail="Query field is required")
-        if is_mongodb_query(query_text):
-            mongo_query = generate_mongo_query(query_text)
-            if mongo_query:
-                results = list(collection.find(mongo_query, {"_id": 0}))
-                return JSONResponse(status_code=200, content={"generated_query": mongo_query, "response": "Here are the products you've been looking for 🛒:", "results": results})
-        return JSONResponse(status_code=200, content={"response": query_model(query_text)})
+
+        # Handle general conversation
+        if not is_product_query(query_text):
+            response = query_model(f"{system_message}\nUser Query: {query_text}\nAI Response:")
+            return JSONResponse(status_code=200, content={"response": response})
+
+        # Handle product-related queries
+        mongo_query = generate_mongo_query(query_text)
+        if not mongo_query:
+            return JSONResponse(status_code=400, content={"response": "Could not generate a valid query."})
+
+        results = list(collection.find(mongo_query, {"_id": 0}))
+        if not results:
+            return JSONResponse(status_code=200, content={"response": "No products found matching your criteria."})
+
+        return JSONResponse(status_code=200, content={
+            "response": "Here are the products you've been looking for 🛒:",
+            "results": results
+        })
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Run the application
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
