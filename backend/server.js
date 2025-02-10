@@ -2,7 +2,7 @@ const express=require("express")
 const mongoose=require("mongoose")
 const cors=require("cors")
 const helmet=require("helmet")
-const Product = require("./router/product")
+const Product = require("./router/product.router")
 
 const app=express()
 
@@ -16,4 +16,4 @@ mongoose.connect("mongodb+srv://shahid1692004:dihahs169@farm2bag-db.sslpa.mongod
 
 app.use(Product)
 
-app.listen(1609,()=>console.log("Connected to Port"))
+app.listen(5000,()=>console.log("Connected to Port"))

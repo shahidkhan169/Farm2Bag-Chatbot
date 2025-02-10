@@ -98,7 +98,7 @@ function Chatbot() {
           className={`fixed right-5 bottom-19 w-96 h-[670px] bg-black border border-gray-300 shadow-lg rounded-lg flex flex-col`}
         >
           <div className="bg-lime-500 text-white text-center py-3 rounded-t-lg font-bold">
-            Chat AI
+            Senapathy AI
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 text-gray-200 space-y-2">
