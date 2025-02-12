@@ -18,10 +18,6 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
-    },
-    cart: {
-        type: SchemaType.ObjectId,
-        ref: "Cart"
     }
 });
 

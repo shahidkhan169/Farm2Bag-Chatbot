@@ -8,6 +8,7 @@ from langchain_groq import ChatGroq
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from prompt.prompt1 import prompt
+from prompt.prompt1 import cartPrompt
 
 load_dotenv()
 
@@ -37,7 +38,6 @@ collection = db[collection_name]
 
 # Initialize Groq LLM
 llm = ChatGroq(model_name="mixtral-8x7b-32768", temperature=0.7)
-chain = prompt | llm
 
 # Input model
 class QueryRequest(BaseModel):
@@ -106,8 +106,9 @@ async def fetch_products(product_names, categories, price_filter, discount_filte
 # API Endpoint
 @app.post("/chat")
 async def handle_query(request: QueryRequest):
+    productChain = prompt | llm
     try:
-        response = await chain.ainvoke({"input": request.query})
+        response = await productChain.ainvoke({"input": request.query})
         response_json = json.loads(response.content)
 
         name_field = response_json.get("name", "")
@@ -121,5 +122,16 @@ async def handle_query(request: QueryRequest):
             }
         
         return {"message": response_json.get("message", "I am here to help!")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+    
+@app.post("/cart")
+async def cartManage(request : QueryRequest):
+    chain = cartPrompt | llm
+    try:
+        response=await chain.ainvoke({"input":request.query})
+        response_json=json.loads(response.content)
+        print (response_json)
+        return response_json
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
