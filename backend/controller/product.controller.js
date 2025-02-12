@@ -1,6 +1,6 @@
 const Product=require('../models/product')
 
-module.exports.addItem=async(req,res)=>{
+const addItem=async(req,res)=>{
     try{
         const{name,category,price,weight,unit,available,rating,discount}=req.body
         const product=new Product({name,category,price,weight,unit,available,rating,discount})
@@ -10,5 +10,9 @@ module.exports.addItem=async(req,res)=>{
     catch(err)
     {
         res.status(400).json({error:err.message})
-    }
+    } 
+}
+
+module.exports={
+    addItem
 }

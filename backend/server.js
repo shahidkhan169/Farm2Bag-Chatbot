@@ -2,7 +2,7 @@ const express=require("express")
 const mongoose=require("mongoose")
 const cors=require("cors")
 const helmet=require("helmet")
-const Product = require("./router/product.router")
+const Product = require("./router/router")
 
 const app=express()
 
