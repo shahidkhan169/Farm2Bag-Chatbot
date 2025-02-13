@@ -4,8 +4,8 @@ const Cart = require('../models/cart');
 const Product = require('../models/product'); // Import Product model
 
 const extractNumericQuantity = (amount) => {
-    const match = amount.match(/\d+/); 
-    return match ? parseInt(match[0], 10) : 1; 
+    const match = amount.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 1;
 };
 
 const chat = async (req, res) => {
@@ -23,37 +23,35 @@ const chat = async (req, res) => {
         }
 
         const response = await axios.post(
-            'http://127.0.0.1:8000/cart', 
-            { query }, 
+            'http://127.0.0.1:8000/route-query',
+            { query },
             { headers: { Authorization: authToken } } // Send token in headers
         );
-
+        console.log(response.data)
         if (response.data.role === "cart" && response.data.name.startsWith("AddtoCart")) {
             const { message, name } = response.data;
             const matches = name.match(/\[(.*?)\]/);
-
             if (matches) {
-                const products = JSON.parse(matches[0].replace(/'/g, '"')); 
-                
+                const products = JSON.parse(matches[0].replace(/'/g, '"'));
+                console.log(products)
                 for (const product of products) {
-                    const productName = product.name;
-                    const quantityToAdd = extractNumericQuantity(product.amount);
+                    const productName = product.product_name;
+                    const quantityToAdd = extractNumericQuantity(product.quantity);
 
-                    // Check if product exists in the Product collection
+
                     const existingProduct = await Product.findOne({ name: productName });
                     if (!existingProduct) {
                         return res.json({ message: `Sorry, ${productName} not found.` });
                     }
 
-                    // Check if the product is already in the cart
+
                     const existingCartItem = await Cart.findOne({ userId, productId: existingProduct._id });
 
                     if (existingCartItem) {
-                        // Increase quantity if product already exists
                         existingCartItem.quantity += quantityToAdd;
                         await existingCartItem.save();
                     } else {
-                        // Add new item to cart if not exists
+
                         const newCartItem = new Cart({
                             userId,
                             productId: existingProduct._id,
@@ -65,30 +63,32 @@ const chat = async (req, res) => {
 
                 return res.json({ message: message });
             }
-        } 
+        }
         else if (response.data.role === "cart" && response.data.name.startsWith("ShowCart()")) {
-            // Fetch cart items and populate product details
-            const cartItems = await Cart.find({ userId }).populate("productId", "name category amount unit price discount");
-
+            const cartItems = await Cart.find({ userId: userId }).populate('productId').select('-__v').exec();
             if (cartItems.length === 0) {
                 return res.json({ message: "Your cart is empty." });
             }
-
             const formattedCartItems = cartItems.map(item => ({
-                productId: item.productId._id,
-                name: item.productId.name,
-                caterory: item.productId.category,
-                amount: item.productId.amount,
-                price: item.productId.price,
-                unit:item.productId.unit,
-                quantity: item.productId.quantity,
-                discount:item.productId.discount
+                product: {
+                    productId: item.productId._id,
+                    name: item.productId.name,
+                    category: item.productId.category,
+                    price: item.productId.price,
+                    unit: item.productId.unit,
+                    discount: item.productId.discount
+                },
+                quantity: item.quantity
             }));
-
-            return res.json({ cartItems: formattedCartItems });
+            return res.json({ "status":"sucess" , "data": formattedCartItems });
         }
-
-        res.json(response.data);  
+        else if(response.data.role==="general" || response.data.role==="greeting")
+            return res.json({"message":response.data.message})
+        else{
+            return res.json(response.data);
+            
+        }
+        return res.json({ message: "Invalid request" });
     } catch (err) {
         console.error("Error communicating with FastAPI:", err.message);
         res.status(500).json({ error: "Internal Server Error" });

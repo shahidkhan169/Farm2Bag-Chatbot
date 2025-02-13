@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from langchain_groq import ChatGroq
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
-from prompt.prompt1 import prompt
+from prompt.prompt1 import findPrompt
 from prompt.prompt1 import cartPrompt
+from prompt.prompt1 import decisionPrompt
+import traceback
 
 load_dotenv()
 
@@ -23,27 +25,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Set Groq API key
 groq_api_key = os.getenv("GROQ_API_KEY")
 
-# MongoDB connection
-mongo_uri = os.getenv("MONGO_URI")  # Store this in your .env file
+
+mongo_uri = os.getenv("MONGO_URI")  
 db_name = "test"
 collection_name = "products"
 
-# Initialize MongoDB client
+
 client = AsyncIOMotorClient(mongo_uri)
 db = client[db_name]
 collection = db[collection_name]
 
-# Initialize Groq LLM
+
 llm = ChatGroq(model_name="mixtral-8x7b-32768", temperature=0.7)
 
 # Input model
 class QueryRequest(BaseModel):
     query: str
 
-# Function to parse the "name" field from JSON response
 def parse_name_field(name_field: str):
     try:
         match = re.search(
@@ -103,10 +103,10 @@ async def fetch_products(product_names, categories, price_filter, discount_filte
         print(f"MongoDB Fetch Error: {e}")
         return []
 
-# API Endpoint
-@app.post("/chat")
+
+@app.post("/find")
 async def handle_query(request: QueryRequest):
-    productChain = prompt | llm
+    productChain = findPrompt | llm
     try:
         response = await productChain.ainvoke({"input": request.query})
         response_json = json.loads(response.content)
@@ -118,7 +118,7 @@ async def handle_query(request: QueryRequest):
 
             return {
                 "message": response_json.get("message", "Here are your products!"),
-                "products": products,
+                "data": products,
             }
         
         return {"message": response_json.get("message", "I am here to help!")}
@@ -135,3 +135,26 @@ async def cartManage(request : QueryRequest):
         return response_json
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+    
+@app.post("/route-query")
+async def route_query(request: QueryRequest):
+    classification_chain = decisionPrompt | llm
+    try:
+        response = await classification_chain.ainvoke({"input": request.query, "message": ""})
+        response_json = json.loads(response.content)
+        print(response_json)
+        if response_json["role"] == "Cart":
+            return await cartManage(request)  
+        elif response_json["role"] == 'Find':
+            return await handle_query(request)
+        elif response_json["role"] == 'general':
+            return response_json
+        
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+       
+      
+        
+
+    
