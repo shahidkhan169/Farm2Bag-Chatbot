@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 import farm from "./Photos/img3.jpg";
 import img from "./Photos/logo.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,6 +14,8 @@ function Register({ onClose }) {
     rePassword: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
   const navigate = useNavigate();
@@ -123,28 +125,34 @@ function Register({ onClose }) {
             </div>
 
             {/* Password Field */}
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Password"
                 className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:border-green-500 ${errors.password ? "border-red-500" : ""}`}
               />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-500">
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
               <p className="text-red-500 text-xs h-4">{errors.password}</p>
             </div>
 
             {/* Confirm Password Field */}
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 name="rePassword"
                 value={formData.rePassword}
                 onChange={handleChange}
                 placeholder="Confirm Password"
                 className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:border-green-500 ${errors.rePassword ? "border-red-500" : ""}`}
               />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-2.5 text-gray-500">
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
               <p className="text-red-500 text-xs h-4">{errors.rePassword}</p>
             </div>
 
