@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShoppingCart, User, Sun, Moon, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import { Link, useNavigate } from 'react-router-dom';  // Import useNavigate
 import img from "./Photos/logo.png";
 
 function Nav() {
@@ -20,7 +20,7 @@ function Nav() {
   return (
     <nav className={`p-4 shadow-lg ${darkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
       <div className="container mx-auto flex justify-between items-center">
-        
+
         <div className="flex items-center space-x-2">
           <img src={img} alt="farm2bag logo" className="h-12" />
           <span className="text-xl font-extrabold">farm2bag</span>
@@ -35,10 +35,12 @@ function Nav() {
         </div>
 
         <div className="flex items-center space-x-12">
-          
+
           <div className="relative cursor-pointer">
-            <ShoppingCart size={24} className="text-gray-700 dark:text-black" />
-            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1 rounded-full">0</span>
+            <Link to="/addcart">
+              <ShoppingCart size={24} className="text-gray-700 dark:text-black" />
+              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1 rounded-full">0</span>
+            </Link>
           </div>
 
           <div className="relative">
@@ -48,7 +50,7 @@ function Nav() {
             </button>
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white text-black border rounded-lg shadow-lg">
-                {["Tamil", "Hindi", "Telugu"].map((lang) => (
+                {["Tamil", "Hindi", "Telugu", "English"].map((lang) => (
                   <button
                     key={lang}
                     onClick={() => { setLanguage(lang); setDropdownOpen(false); }}

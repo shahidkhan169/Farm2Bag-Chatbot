@@ -253,28 +253,28 @@ orderTrackingPrompt = ChatPromptTemplate.from_messages([
         -**Input:** `{{'productName': ['wheat poha', 'pulungal rice'], 'orderStatus': 'Order Confirmed', 'expectedDeliveryDate': '2025-02-17T20:30:00.000Z'}}`  
           **Possible Response:**  
           {{
-              "🎉 Your order has been placed successfully! 📦✅\n\n🛍️ Items Ordered:\n🌾 Wheat Poha\n🍚 Pulungal Rice\n🚚 Expected Delivery: 📅 Feb 17, 2025 ⏰ Around 8:30 PM\n\nSit tight—your items will be on their way soon! 🚀😊"
+              "message": "🎉 Your order has been placed successfully! 📦✅\n\n🛍️ Items Ordered:\n🌾 Wheat Poha\n🍚 Pulungal Rice\n🚚 Expected Delivery: 📅 Feb 17, 2025 ⏰ Around 8:30 PM\n\nSit tight—your items will be on their way soon! 🚀😊"
           }}
 
         **Order Shipped:**  
         -**Input:** `{{'productName': ['almond butter', 'green tea'], 'orderStatus': 'Shipped', 'expectedDeliveryDate': '2025-02-18T15:00:00.000Z'}}`  
           **Possible Response:**  
           {{
-              "🚀 Great news! Your order has been shipped! 📦✨\n\nItems:\n🌰 Almond Butter\n🍵 Green Tea\n🚚 Expected Arrival: 📅 Feb 18, 2025 ⏰ Around 3:00 PM\n\nIt's on its way—get excited! 🎉📦"
+              "message": "🚀 Great news! Your order has been shipped! 📦✨\n\nItems:\n🌰 Almond Butter\n🍵 Green Tea\n🚚 Expected Arrival: 📅 Feb 18, 2025 ⏰ Around 3:00 PM\n\nIt's on its way—get excited! 🎉📦"
           }}
 
         **Out for Delivery:**  
         -**Input:** `{{'productName': ['cashews', 'organic honey'], 'orderStatus': 'Out for Delivery', 'expectedDeliveryDate': '2025-02-19T10:30:00.000Z'}}`  
           **Possible Response:**  
           {{
-              "🚛 Heads up! Your order is Out for Delivery! 📢📦\n\n🥜 Cashews\n🍯 Organic Honey\n🚚 Expected Arrival: 📅 Feb 19, 2025 ⏰ Around 10:30 AM\n\nAlmost there—keep an eye out! 👀🎊"
+              "message": "🚛 Heads up! Your order is Out for Delivery! 📢📦\n\n🥜 Cashews\n🍯 Organic Honey\n🚚 Expected Arrival: 📅 Feb 19, 2025 ⏰ Around 10:30 AM\n\nAlmost there—keep an eye out! 👀🎊"
           }}
 
         **Delivered:**  
         -**Input:** `{{'productName': ['black coffee', 'protein bars'], 'orderStatus': 'Delivered', 'expectedDeliveryDate': '2025-02-20T12:00:00.000Z'}}`  
           **Possible Response:**  
           {{
-              "🎉 Your package has arrived! 📦✅\n\n☕ Black Coffee\n🍫 Protein Bars\n📍 Delivered on: 📅 Feb 20, 2025 ⏰ At 12:00 PM\n\nEnjoy your order, and let us know if you need anything else! 😊💖"
+              "message": "🎉 Your package has arrived! 📦✅\n\n☕ Black Coffee\n🍫 Protein Bars\n📍 Delivered on: 📅 Feb 20, 2025 ⏰ At 12:00 PM\n\nEnjoy your order, and let us know if you need anything else! 😊💖"
           }}
 
         **STRICT REQUIREMENT:**  

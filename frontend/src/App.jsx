@@ -121,12 +121,12 @@ function Chatbot() {
             ))}
           </div>
 
-          <div className="absolute bottom-0 w-full bg-slate-800 p-3 border-t border-gray-300">
+          <div className="bottom-0 w-full bg-slate-800 p-3 border-t border-gray-300">
             <div className="flex items-center">
               <input
                 type="text"
                 placeholder="Enter your question here"
-                className="w-full p-2 border rounded bg-slate-500 text-white"
+                className="w-full p-2 border rounded bg-white text-white"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
