@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { ShoppingCart, User, Sun, Moon, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';  // Import useNavigate
 import img from "./Photos/logo.png";
 
 function Nav() {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();  // Initialize navigate
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");  // Remove token from storage
+    navigate("/login");  // Redirect to login page
+  };
 
   return (
     <nav className={`p-4 shadow-lg ${darkMode ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
@@ -23,12 +30,11 @@ function Nav() {
           <input
             type="text"
             placeholder="What are you looking..."
-            className="w-11/12  px-4 py-2 border focus:outline-black rounded-lg text-black"
+            className="w-11/12 px-4 py-2 border focus:outline-black rounded-lg text-black"
           />
         </div>
 
         <div className="flex items-center space-x-12">
-          
           
           <div className="relative cursor-pointer">
             <ShoppingCart size={24} className="text-gray-700 dark:text-black" />
@@ -59,9 +65,9 @@ function Nav() {
             {darkMode ? <Sun size={24} className="text-yellow-400" /> : <Moon size={24} className="text-gray-700" />}
           </button>
 
-          <button className="flex items-center space-x-2 border px-4 py-2 rounded-lg hover:bg-gray-100 ">
+          <button onClick={handleLogout} className="flex items-center space-x-2 border px-4 py-2 rounded-lg hover:bg-gray-100">
             <User size={24} />
-            <span>Sign In</span>
+            <span>Logout</span>
           </button>
         </div>
       </div>

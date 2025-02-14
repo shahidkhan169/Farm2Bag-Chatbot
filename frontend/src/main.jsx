@@ -9,6 +9,6 @@ import Farm from './Farm.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Farm/>
+    <Farm />
   </StrictMode>,
 )
