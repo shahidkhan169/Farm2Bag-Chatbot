@@ -10,7 +10,11 @@ from dotenv import load_dotenv
 from prompt.prompt1 import findPrompt
 from prompt.prompt1 import cartPrompt
 from prompt.prompt1 import decisionPrompt
+from prompt.prompt1 import orderTrackingPrompt
 import traceback
+from typing import List,Optional
+from fastapi import Header
+
 
 load_dotenv()
 
@@ -40,7 +44,14 @@ collection = db[collection_name]
 
 llm = ChatGroq(model_name="mixtral-8x7b-32768", temperature=0.7)
 
-# Input model
+class OrderItem(BaseModel):
+    productName: List[str]
+    orderStatus: str
+    expectedDeliveryDate: str
+
+class OrdersRequest(BaseModel):
+    orders: List[OrderItem]
+
 class QueryRequest(BaseModel):
     query: str
 
@@ -136,18 +147,61 @@ async def cartManage(request : QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
     
+
+@app.post("/order-details")
+async def receive_order_details(order_request: OrdersRequest, authorization: Optional[str] = Header(None)):
+    try:
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Unauthorized: Missing token")
+
+        valid_orders = next(
+            (order for order in order_request.orders if order.productName), None
+        )
+
+        if not valid_orders:
+            return {"message": "No valid orders found"}
+        
+        valid_orders_json = valid_orders.model_dump()
+        print("Valid Orders JSON:", valid_orders_json)
+
+        chain = orderTrackingPrompt | llm
+        response = await chain.ainvoke({"input": json.dumps(valid_orders_json)})
+        print("Raw Response from LLM:", response)
+
+        if not response or not hasattr(response, "content"):
+            raise HTTPException(status_code=500, detail="LLM response is empty or invalid")
+
+        # Clean up response to remove control characters and fix quote formatting
+        cleaned_response = response.content.replace("'", '"')  # Fix single quotes
+        cleaned_response = re.sub(r'[\x00-\x1F\x7F]', '', cleaned_response)  # Remove control characters
+
+        response_json = json.loads(cleaned_response)
+        print("Parsed JSON Response:", response_json)
+        
+        return response_json
+
+    except json.JSONDecodeError as e:
+        print("JSON Decode Error:", e)
+        raise HTTPException(status_code=500, detail=f"Invalid JSON format in LLM response: {e}")
+
+    except Exception as e:
+        print("Exception occurred:", e)
+        raise HTTPException(status_code=500, detail=f"Error processing order details: {e}")
+
+
 @app.post("/route-query")
 async def route_query(request: QueryRequest):
     classification_chain = decisionPrompt | llm
     try:
         response = await classification_chain.ainvoke({"input": request.query, "message": ""})
         response_json = json.loads(response.content)
-        print(response_json)
         if response_json["role"] == "Cart":
             return await cartManage(request)  
         elif response_json["role"] == 'Find':
             return await handle_query(request)
-        elif response_json["role"] == 'general':
+        elif response_json["role"] == 'general':   
+            return response_json
+        elif response_json["role"] == 'TrackOrder' :
             return response_json
         
     except Exception as e:

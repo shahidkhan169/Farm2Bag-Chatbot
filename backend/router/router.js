@@ -11,6 +11,7 @@ router.post('/SignIn',userController.signIn);
 
 //product
 router.post('/add',productController.addItem)
+router.post('/order',auth,productController.orderItem)
 
 //lang
 router.post('/chat',auth,langContoller.chat)

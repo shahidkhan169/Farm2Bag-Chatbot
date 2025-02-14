@@ -1,7 +1,8 @@
 const axios = require('axios');
 const mongoose = require('mongoose');
 const Cart = require('../models/cart');
-const Product = require('../models/product'); // Import Product model
+const Product = require('../models/product'); 
+const Order = require('../models/order')
 
 const extractNumericQuantity = (amount) => {
     const match = amount.match(/\d+/);
@@ -84,6 +85,43 @@ const chat = async (req, res) => {
         }
         else if(response.data.role==="general" || response.data.role==="greeting")
             return res.json({"message":response.data.message})
+        else if (response.data.role === "TrackOrder") {
+            try {
+                const orders = await Order.find({ userId: userId }); // Fetch all orders for user
+        
+                if (!orders || orders.length === 0) {
+                    return res.json({ message: "Sorry, You didn't order anything." }); // ✅ RETURN to prevent further execution
+                }
+        
+                // Ensure authToken is defined
+                const authToken = req.headers.authorization; 
+                if (!authToken) {
+                    return res.status(401).json({ message: "Unauthorized request" }); // ✅ RETURN to stop execution
+                }
+        
+                const formattedOrders = orders.map(order => ({
+                    productName: order.orderItems?.map(item => item.productName) || [],  
+                    orderStatus: order.orderStatus, 
+                    expectedDeliveryDate: order.expectedDeliveryDate
+                }));
+        
+                
+                const fastApiResponse = await axios.post(
+                    'http://127.0.0.1:8000/order-details',
+                    { orders: formattedOrders },
+                    { headers: { Authorization: authToken } } 
+                );
+        
+                return res.json({ message: "Order details sent ..successfully", data: fastApiResponse.data });
+        
+            } catch (error) {
+                console.error("Error communicating with FastAPI:", error.message);
+        
+                if (!res.headersSent) { 
+                    return res.status(500).json({ message: "Error tracking order", error: error.message });
+                }
+            }
+        }                
         else{
             return res.json(response.data);
             
