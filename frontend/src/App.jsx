@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaPaperPlane, FaCommentDots, FaChevronDown } from 'react-icons/fa';
 import axios from 'axios';
+import what from "./Photos/whatsapp.png"
 
 function Chatbot() {
   const [messages, setMessages] = useState([]);
@@ -82,12 +83,15 @@ function Chatbot() {
       </div>
 
       {isChatOpen && (
-        <div className="fixed right-8 bottom-20 w-96 h-[609px] border border-gray-300 shadow-lg rounded-lg flex flex-col mr-3 mb-0">
+        <div className="fixed right-8 bottom-20 w-96 h-[540px] border border-gray-300 shadow-lg rounded-lg flex flex-col mr-3 mb-0">
+
           <div className="bg-slate-800 text-white text-center py-3 rounded-t-lg font-bold">
+
             Fairos
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 text-gray-200 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 text-gray-200 space-y-2  bg-gradient-to-r from-blue-500 via-purple-500
+               to-pink-500">
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`p-2 rounded max-w-full break-words whitespace-normal ${msg.sender === 'user' ? 'bg-slate-800 text-white' : 'bg-orange-600 text-white'}`}>
@@ -121,16 +125,24 @@ function Chatbot() {
             ))}
           </div>
 
-          <div className="bottom-0 w-full bg-slate-800 p-3 border-t border-gray-300">
+          <div className="bottom-0 w-full bg-slate-800 p-3 border-t border-gray-300 rounded-b-lg">
             <div className="flex items-center">
               <input
                 type="text"
                 placeholder="Enter your question here"
-                className="w-full p-2 border rounded bg-white text-white"
+                className="m2-9 w-72 p-2 border rounded bg-white text-black"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               />
+              <div>
+                <a href="your-link-here" target="_blank" rel="noopener noreferrer">
+                  <button className="ml-2 w-9 h-9 p-2 bg-slate-500 text-white hover:bg-slate-600 rounded-full flex items-center justify-center">
+                    <img src={what} alt="Icon" className="w-5 h-5 " />
+                  </button>
+                </a>
+                
+              </div>
               <button className="ml-2 p-2 bg-slate-500 text-white rounded hover:bg-slate-600" onClick={sendMessage} disabled={loading}>
                 <FaPaperPlane className="w-5 h-5" />
               </button>
